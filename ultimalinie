@@ -1,4 +1,1 @@
-    Dim ultimaLinie As Long
-    
-    ' Gase?te ultima linie cu date în coloana A
-    ultimaLinie = ws.Cells(ws.Rows.Count, "D").End(xlUp).Row
+Range("A:O").Sort Key1:=Range("M1"), Order1:=xlAscending, Header:=xlNo
