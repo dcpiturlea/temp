@@ -1,0 +1,87 @@
+Sub importFisierSiManipulareDate()
+    Dim caleFisier As String
+    Dim dialogFisier As FileDialog
+    Dim workbookImport As Workbook
+    Dim DBPath As String
+    Dim exportFileFullPath As String
+    
+
+    ' Creeaza un obiect FileDialog
+    Set dialogFisier = Application.FileDialog(msoFileDialogFilePicker)
+
+    ' Configureaza dialogul pentru a permite doar selectarea fi?ierelor Excel
+    With dialogFisier
+        .Title = "Selecteaza export BASWARE"
+        .Filters.Clear
+        .Filters.Add "FiSiere Excel", "*.xlsx; *.xls"
+        .AllowMultiSelect = False ' Permite doar selectarea unui singur fi?ier
+    End With
+
+    ' Afi?eaza dialogul ?i verifica daca utilizatorul a selectat un fi?ier
+    If dialogFisier.Show = -1 Then ' -1 înseamna ca utilizatorul a apasat butonul "Deschide"
+        ' Utilizeaza prima cale a fi?ierului selectat
+        caleFisier = dialogFisier.SelectedItems(1)
+        
+        ' Deschide fi?ierul Excel
+        Set workbookImport = Workbooks.Open(caleFisier)
+            ' Don't show confirmation window
+            Application.DisplayAlerts = False
+            
+            Dim ws As Worksheet
+            Dim wsName As String
+            
+            ' Specifica foaia de lucru (worksheet) unde se afla datele
+            Set ws = workbookImport.Worksheets(1)
+            wsName = ws.Name
+            DBPath = workbookImport.FullName
+            
+            ' aici setez ordinea coloanelor
+            Call initializeVars
+            
+            'setam  noua cale pentru fisierul final
+            exportFileFullPath = GetParentFolderName(caleFisier)
+            exportFileFullPath = exportFileFullPath & "\" & newExcelExportFileName
+            
+            'extragem noile coloane
+            Dim rst As New ADODB.Recordset
+            Set rst = GetColumnInOrder(ws, wsName, DBPath)
+            
+            'verificam vizual datele
+            'Call debugRecortSet(rst)
+            
+
+           
+            Dim workbookExport As Object
+            Set workbookExport = CreateNewExcelAndCopyData(rst)
+            
+            
+            Dim wsExportName As String
+            ' Specifica foaia de lucru (worksheet) unde se afla datele
+            Set wsExport = workbookExport.Worksheets(1)
+            wsExportName = wsExport.Name
+            
+            'TextToColumn
+            Call textToColumnFunction(wsExport)
+            
+            'aici trebuie adaugate celelalte manipulari(filtre, pivot, etc)
+            Call PopoluateColumnsABC(wsExport)
+            
+            'stergem vechiul fisier final, daca exista
+            If Dir(exportFileFullPath) <> "" Then Kill (exportFileFullPath)
+            'salvam noul fisier
+            workbookExport.SaveAs Filename:=exportFileFullPath
+            ' Allow confirmation windows to appear as normal
+            Application.DisplayAlerts = True
+            
+            ' workbookExport fi?ierul Excel ?i eliberam obiectele
+            workbookExport.Close
+            Set wsExport = Nothing
+            Set workbookExport = Nothing
+        
+        workbookImport.Close
+        MsgBox "Done, the new export created!"
+    Else
+        ' Utilizatorul a anulat dialogul sau nu a selectat niciun fi?ier
+        MsgBox "Operatie anulata sau niciun fiier selectat."
+    End If
+End Sub
